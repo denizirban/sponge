@@ -15,7 +15,7 @@ Expo SDK 58 ile hazırlanmış, **30 dakika odak + 5 dakika hareket** döngüsü
 
 ## Çalıştırma
 
-Ön koşul: Node.js **22.13+** ve Expo Go (ya da kendi geliştirme derlemeniz).
+Ön koşul: Node.js **22.13+**. iPhone üzerinde Expo SDK 58 için **özel bir iOS derlemesi (development build veya standalone build)** gerekir.
 
 ```bash
 cd kalk-mobile
@@ -24,7 +24,7 @@ npx expo install --fix
 npx expo start
 ```
 
-Expo Go ile yerel bildirimleri hızlıca deneyebilirsin. **Gerçek arka plan/kilit ekranı testi için kendi telefona yüklenen native build ile test et.**
+**Önemli:** iOS App Store’daki Expo Go sürümü SDK 54 ile sınırlıdır; bu SDK 58 projesini iPhone’da Expo Go ile açamazsın. Kilit ekranı ve kapalı uygulama bildirimlerini kendi yüklediğin native build üzerinde test et.
 
 ## iPhone'a kişisel kurulum
 
@@ -55,6 +55,6 @@ npm run build:ios       # EAS iOS dahili dağıtım (eas-cli gerekli)
 
 ## Kaynak ve telif
 
-Maskot/ikon kullanıcı tarafından sağlanan görseldir; **yalnızca özel, kişisel kullanım** için dahil edilmiştir. Kamuya açık yayın veya ticari dağıtım için gerekli kullanım hakları ayrıca değerlendirilmelidir.
+Maskot/ikon kullanıcı tarafından sağlanan görseldir. Bu GitHub deposu herkese açıksa görsel de herkese açık olur; özel kullanım için de telif durumuna dikkat edilmelidir. Kamuya açık ürün veya ticari dağıtım için gerekli kullanım hakları ayrıca değerlendirilmelidir.
 
 Expo Notifications: https://docs.expo.dev/versions/v58.0.0/sdk/notifications/
