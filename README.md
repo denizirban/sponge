@@ -18,7 +18,7 @@ Expo SDK 58 ile hazırlanmış, **30 dakika odak + 5 dakika hareket** döngüsü
 Ön koşul: Node.js **22.13+**. iPhone üzerinde Expo SDK 58 için **özel bir iOS derlemesi (development build veya standalone build)** gerekir.
 
 ```bash
-cd kalk-mobile
+cd sponge
 npm install
 npx expo install --fix
 npx expo start
