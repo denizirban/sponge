@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F5F7EC"
+      "backgroundColor": "#F3F3F3"
     },
     "ios": {
       "supportsTablet": false,
@@ -23,7 +23,7 @@
       "package": "com.denizirban.sponge",
       "adaptiveIcon": {
         "foregroundImage": "./assets/mascot.png",
-        "backgroundColor": "#F5F7EC"
+        "backgroundColor": "#F3F3F3"
       },
       "permissions": [
         "POST_NOTIFICATIONS"
@@ -33,7 +33,11 @@
       [
         "expo-notifications",
         {
-          "defaultChannel": "sponge-breaks"
+          "defaultChannel": "sponge-breaks-v2",
+          "sounds": [
+            "./assets/sounds/sponge-chime.wav"
+          ],
+          "enableRemoteNotifications": false
         }
       ]
     ],

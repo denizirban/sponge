@@ -84,4 +84,12 @@ function mmss(ms) {
   return `${String(m).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-module.exports = { DEFAULT_SETTINGS, parseClock, formatClock, isActiveAt, buildDailySlots, nextSlot, dateKey, mmss };
+function shouldNotifyBreakEnd(end, settings, now = new Date()) {
+  const when = new Date(end);
+  return Boolean(settings.enabled) &&
+    Number.isFinite(when.getTime()) &&
+    when.getTime() > now.getTime() &&
+    isActiveAt(when, settings);
+}
+
+module.exports = { DEFAULT_SETTINGS, parseClock, formatClock, isActiveAt, buildDailySlots, nextSlot, dateKey, mmss, shouldNotifyBreakEnd };

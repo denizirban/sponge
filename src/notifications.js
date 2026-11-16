@@ -3,10 +3,12 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import logic from './logic.cjs';
 
-const { buildDailySlots, isActiveAt } = logic;
+const { buildDailySlots, isActiveAt, shouldNotifyBreakEnd } = logic;
 const SNOOZE_KEY = 'sponge:snooze-id:v1';
-const CHANNEL_ID = 'sponge-breaks';
+const BREAK_END_KEY = 'sponge:break-end-notification-id:v1';
+const CHANNEL_ID = 'sponge-breaks-v2';
 const CATEGORY_ID = 'SPONGE_ACTIONS';
+const CHIME = 'sponge-chime.wav';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,7 +26,7 @@ export async function setupNotifications() {
       description: 'Kalkma ve esneme hatırlatmaları',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 220, 160, 220],
-      sound: 'default',
+      sound: CHIME,
     });
   }
   await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
@@ -56,9 +58,39 @@ function message(settings) {
     title: 'Kalk hadi.',
     body: `${settings.workMinutes} dakika geçti. ${settings.breakMinutes} dakika hareket et, sonra devam.`,
     categoryIdentifier: CATEGORY_ID,
-    sound: 'default',
+    sound: CHIME,
     data: { kind: 'break' },
   };
+}
+
+// A one-time alarm is stored by the OS, so it can fire with the screen locked.
+export async function cancelBreakEndReminder() {
+  const id = await AsyncStorage.getItem(BREAK_END_KEY);
+  if (id) {
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+    await AsyncStorage.removeItem(BREAK_END_KEY);
+  }
+}
+
+export async function scheduleBreakEndReminder(end, settings) {
+  await cancelBreakEndReminder();
+  if (!shouldNotifyBreakEnd(end, settings)) return null;
+  await ensureNotificationPermission();
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Mola bitti.',
+      body: settings.breakMinutes + ' dakikalık mola süren doldu. Hazırsan devam edebilirsin.',
+      sound: CHIME,
+      data: { kind: 'break_end' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: new Date(end),
+      ...(Platform.OS === 'android' ? { channelId: CHANNEL_ID } : {}),
+    },
+  });
+  await AsyncStorage.setItem(BREAK_END_KEY, id);
+  return id;
 }
 
 export async function scheduleDailyReminders(settings) {
@@ -68,6 +100,7 @@ export async function scheduleDailyReminders(settings) {
   if (settings.enabled) await ensureNotificationPermission();
   await Notifications.cancelAllScheduledNotificationsAsync();
   await AsyncStorage.removeItem(SNOOZE_KEY);
+  await AsyncStorage.removeItem(BREAK_END_KEY);
   if (!settings.enabled) {
     await Notifications.dismissAllNotificationsAsync();
     return 0;
@@ -114,6 +147,7 @@ export async function testReminder() {
       ...message({ workMinutes: 30, breakMinutes: 5 }),
       title: 'Sponge test bildirimi',
       body: 'Bu bildirim telefonun yerel hatırlatma sistemiyle gönderildi.',
+      sound: 'default',
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,

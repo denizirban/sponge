@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { DEFAULT_SETTINGS, parseClock, buildDailySlots, nextSlot, isActiveAt, formatClock, mmss } = require('../src/logic.cjs');
+const { DEFAULT_SETTINGS, parseClock, buildDailySlots, nextSlot, isActiveAt, formatClock, mmss, shouldNotifyBreakEnd } = require('../src/logic.cjs');
 
 test('Gece sessiz modu 22:00–09:00 arasını otomatik dışlar', () => {
   const s = { ...DEFAULT_SETTINGS, enabled: true };
@@ -52,4 +52,15 @@ test('Bir sonraki hatırlatmayı bugün veya yarın bulur', () => {
 test('Sayaç pozitif ve negatif sürelerde düzgün biçimlenir', () => {
   assert.equal(mmss(59000), '00:59');
   assert.equal(mmss(-1000), '00:00');
+});
+
+test('Mola bitiş bildirimi yalnızca aktif saatlerde ve gelecekte planlanır', () => {
+  const settings = { ...DEFAULT_SETTINGS, enabled: true };
+  const now = new Date(2026, 10, 16, 10, 0);
+  assert.equal(shouldNotifyBreakEnd(new Date(2026, 10, 16, 10, 5), settings, now), true);
+  assert.equal(shouldNotifyBreakEnd(new Date(2026, 10, 16, 22, 4), settings, now), false);
+  assert.equal(shouldNotifyBreakEnd(new Date(2026, 10, 16, 9, 59), settings, now), false);
+  assert.equal(shouldNotifyBreakEnd('invalid', settings, now), false);
+  assert.equal(shouldNotifyBreakEnd(new Date(2026, 10, 16, 10, 5), { ...settings, enabled: false }, now), false);
+  assert.equal(shouldNotifyBreakEnd(new Date(2026, 10, 16, 22, 4), { ...settings, quietEnabled: false }, now), true);
 });

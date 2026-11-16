@@ -8,6 +8,10 @@ Expo SDK 58 ile geliştirilmiş iPhone / Android hareket molası uygulaması. İ
 - Telefon kilitliyken veya uygulama kapalıyken cihazda önceden planlanan yerel bildirimler
 - **Gece sessiz modu** (varsayılan **22:00–09:00**, isteğe göre değiştirilebilir veya kapatılabilir)
 - Bildirimleri tamamen açma/kapatma, **5 dk erteleme**, bildirime dokunup mola başlatma
+- **Mola bitiş bildirimi**: Molayı başlatınca 5/10 dakika sonrasına tek seferlik bildirim planlanır; erken bitirince iptal edilir; gece sessiz saatlerine denk gelirse gönderilmez
+- **Mola ekranı**: saniye saniye geri sayım, kaç dakika kaldığı ve tahmini bitiş saati
+- Gri-beyaz arayüz, siyah tipografi; yalnızca maskot renkli
+- Özel, orijinal kısa kalkma bildirimi melodisi (`assets/sounds/sponge-chime.wav`); bu ses için yeni iOS/Android build gerekir, Expo Go'da ses davranışı farklı olabilir
 - Günlük mola ve erteleme sayacı; 8 saniyelik test bildirimi
 - Hesap, reklam, internet bağlantısı veya sunucu gerektirmez
 
@@ -67,3 +71,13 @@ npx expo start
 Telifli görsel kamuya açık depoda bulunduğunda herkes tarafından görülebilir. Kişisel kullanım için bile gerekli kullanım haklarına dikkat edilmeli.
 
 [Expo Notifications SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/)
+
+## Son değişiklikleri iPhone'da görme
+
+```bash
+cd ~/sponge
+git pull
+npx expo start -c
+```
+
+**Expo Go** ile arayüzü ve geri sayımı test edebilirsin. Özel sesin ve tamamen kapalı durumda mola bitiş uyarısının nihai testini ayrı, imzalı iOS build'de yap. Yeni ses bir config plugin ile uygulama paketine eklenir; yalnızca JavaScript güncellemesiyle Expo Go'ya yüklenmez. Bildirimler iOS Sessiz / Odak moduna tabidir. Statü otomatik tamamlandı sayılmaz, kullanıcı doğrular. Mevcut sabit çalışma hatırlatmaları, elle başlatılan molalarla bazen çakışabilir.

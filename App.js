@@ -22,6 +22,8 @@ import {
   scheduleDailyReminders,
   snoozeFiveMinutes,
   testReminder,
+  scheduleBreakEndReminder,
+  cancelBreakEndReminder,
 } from './src/notifications';
 const {
   DEFAULT_SETTINGS,
@@ -37,11 +39,11 @@ const {
 const SETTINGS_KEY = 'kalk:settings:v1';
 const STATS_KEY = 'kalk:stats:v1';
 const BREAK_KEY = 'kalk:break-end:v1';
-const BG = '#F5F7EC';
-const INK = '#17211B';
-const MUTED = '#728078';
-const GREEN = '#DAF06B';
-const LINE = '#DFE5DA';
+const BG = '#F3F3F3';
+const INK = '#111111';
+const MUTED = '#111111';
+const GREEN = '#E1E1E1';
+const LINE = '#DADADA';
 
 function Label({ children, style }) {
   return <Text style={[styles.label, style]}>{children}</Text>;
@@ -87,7 +89,7 @@ function SettingSwitch({ title, description, value, onValueChange, disabled }) {
         <Text style={styles.settingTitle}>{title}</Text>
         <Text style={styles.settingDescription}>{description}</Text>
       </View>
-      <Switch value={value} disabled={disabled} onValueChange={onValueChange} trackColor={{ false: '#D7DED3', true: '#ADCA49' }} thumbColor="#FFFFFF" />
+      <Switch value={value} disabled={disabled} onValueChange={onValueChange} trackColor={{ false: '#D5D5D5', true: '#7A7A7A' }} thumbColor="#FFFFFF" />
     </View>
   );
 }
@@ -117,8 +119,14 @@ export default function App() {
 
   const startBreak = useCallback(async () => {
     const end = Date.now() + settingsRef.current.breakMinutes * 60 * 1000;
+    try {
+      await scheduleBreakEndReminder(end, settingsRef.current);
+    } catch (error) {
+      Alert.alert('Mola bitiş bildirimi ayarlanamadı', String(error.message || error));
+    }
     setBreakEnd(end);
     await AsyncStorage.setItem(BREAK_KEY, String(end));
+    setClockNow(Date.now());
     setFeedback('');
     setScreen('home');
   }, []);
@@ -135,11 +143,17 @@ export default function App() {
   }, [incStat]);
 
   const processResponse = useCallback(async (response) => {
-    if (!response || response.notification.request.content.data?.kind !== 'break') return;
+    if (!response) return;
+    const kind = response.notification.request.content.data?.kind;
+    if (kind !== 'break' && kind !== 'break_end') return;
     const token = `${response.notification.request.identifier}:${response.notification.date}:${response.actionIdentifier}`;
     if (handledRef.current === token) return;
     handledRef.current = token;
-    if (response.actionIdentifier === 'SNOOZE_BREAK') {
+    if (kind === 'break_end') {
+      setClockNow(Date.now());
+      setFeedback('Mola süren doldu. Tamamladıysan kaydedebilirsin.');
+      setScreen('home');
+    } else if (response.actionIdentifier === 'SNOOZE_BREAK') {
       await deferBreak();
     } else {
       await startBreak();
@@ -163,7 +177,13 @@ export default function App() {
         setSettings(s);
         setQuietFrom(s.quietStart);
         setQuietTo(s.quietEnd);
-        if (savedBreak) setBreakEnd(Number(savedBreak));
+        if (savedBreak) {
+          const savedEnd = Number(savedBreak);
+          setBreakEnd(savedEnd);
+          if (Number.isFinite(savedEnd) && savedEnd > Date.now() && s.enabled) {
+            await scheduleBreakEndReminder(savedEnd, s);
+          }
+        }
         const stored = savedStats ? JSON.parse(savedStats) : { day: dateKey(), completed: 0, snoozed: 0 };
         setStats(stored.day === dateKey() ? stored : { day: dateKey(), completed: 0, snoozed: 0 });
         const response = await Notifications.getLastNotificationResponseAsync();
@@ -194,6 +214,9 @@ export default function App() {
     setBusy(true);
     try {
       const count = await scheduleDailyReminders(next);
+      if (breakEnd && breakEnd > Date.now() && next.enabled) {
+        await scheduleBreakEndReminder(breakEnd, next);
+      }
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
       settingsRef.current = next;
       setSettings(next);
@@ -208,6 +231,7 @@ export default function App() {
   }, []);
 
   const finishBreak = useCallback(async () => {
+    await cancelBreakEndReminder();
     await AsyncStorage.removeItem(BREAK_KEY);
     setBreakEnd(null);
     await incStat('completed');
@@ -231,8 +255,9 @@ export default function App() {
 
   const slots = buildDailySlots(settings);
   const upcoming = settings.enabled ? nextSlot(slots, new Date(clockNow)) : null;
-  const inBreak = breakEnd !== null;
+  const inBreak = breakEnd !== null && Number.isFinite(breakEnd);
   const timeLeft = inBreak ? Math.max(0, breakEnd - clockNow) : upcoming ? Math.max(0, upcoming.getTime() - clockNow) : settings.workMinutes * 60000;
+  const breakFinished = inBreak && timeLeft <= 0;
   const nextTime = upcoming ? `${String(upcoming.getHours()).padStart(2, '0')}:${String(upcoming.getMinutes()).padStart(2, '0')}` : '—';
   const isQuietNow = settings.enabled && !isActiveAt(new Date(clockNow), settings);
   const dayStats = stats.day === dateKey() ? stats : { completed: 0, snoozed: 0 };
@@ -243,7 +268,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Pressable onPress={() => setScreen('home')}>
-            <Text style={styles.wordmark}>SPONGE<Text style={{ color: '#8AAA2A' }}>.</Text></Text>
+            <Text style={styles.wordmark}>SPONGE.</Text>
             <Text style={styles.headerSubtitle}>OTURMA, HAREKET ET.</Text>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={() => { setScreen(screen === 'home' ? 'settings' : 'home'); setFeedback(''); }} style={styles.headerAction}>
@@ -255,27 +280,27 @@ export default function App() {
           <>
             <View style={styles.hero}>
               <View style={styles.statusPill}>
-                <View style={[styles.statusDot, { backgroundColor: settings.enabled ? '#7CAA42' : '#B1B9AE' }]} />
-                <Text style={styles.statusText}>{!settings.enabled ? 'HATIRLATMALAR KAPALI' : inBreak ? 'MOLA ZAMANI' : isQuietNow ? 'GECE SESSİZ MODU' : 'HATIRLATMALAR AÇIK'}</Text>
+                <View style={[styles.statusDot, { backgroundColor: settings.enabled ? INK : '#888888' }]} />
+                <Text style={styles.statusText}>{!settings.enabled ? 'HATIRLATMALAR KAPALI' : breakFinished ? 'MOLA BİTTİ' : inBreak ? 'MOLA ZAMANI' : isQuietNow ? 'GECE SESSİZ MODU' : 'HATIRLATMALAR AÇIK'}</Text>
               </View>
-              <Image source={require('./assets/mascot.png')} style={styles.mascot} resizeMode="contain" accessibilityLabel="KALK uygulamasının çizgi karakteri" />
-              <Text style={styles.heroTitle}>{inBreak ? 'Biraz hareket.' : settings.enabled ? 'Azıcık kalk.' : 'Hadi başlayalım.'}</Text>
-              <Text style={styles.heroSub}>{inBreak ? `${settings.breakMinutes} dakika da olsa bir tur at.`: 'Çalışırken zamanı unutmak kolay. Ben hatırlatırım.'}</Text>
+              <Image source={require('./assets/mascot.png')} style={styles.mascot} resizeMode="contain" accessibilityLabel="Sponge uygulamasının çizgi karakteri" />
+              <Text style={styles.heroTitle}>{breakFinished ? 'Mola bitti.' : inBreak ? 'Biraz hareket.' : settings.enabled ? 'Azıcık kalk.' : 'Hadi başlayalım.'}</Text>
+              <Text style={styles.heroSub}>{breakFinished ? 'Mola süren tamamlandı.' : inBreak ? `${settings.breakMinutes} dakika da olsa bir tur at.` : 'Çalışırken zamanı unutmak kolay. Ben hatırlatırım.'}</Text>
             </View>
 
             <View style={styles.timerCard}>
               <View style={styles.timerTop}>
-                <Label>{inBreak ? 'MOLA SAYACI' : settings.enabled ? 'BİR SONRAKİ DÜRTMEYE' : 'HAZIR OLDUĞUNDA BAŞLAT'}</Label>
-                <Text style={styles.timerTopRight}>{inBreak ? `${settings.breakMinutes} DK MOLA` : settings.enabled ? nextTime : `${settings.workMinutes} DK`}</Text>
+                <Label>{breakFinished ? 'MOLA TAMAMLANDI' : inBreak ? 'MOLA BİTİMİNE KALAN' : settings.enabled ? 'BİR SONRAKİ DÜRTMEYE' : 'HAZIR OLDUĞUNDA BAŞLAT'}</Label>
+                <Text style={styles.timerTopRight}>{inBreak ? 'BİTİŞ ' + new Date(breakEnd).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : settings.enabled ? nextTime : `${settings.workMinutes} DK`}</Text>
               </View>
               <Text style={[styles.timer, timeLeft >= 100 * 60000 && { fontSize: 56, letterSpacing: -2 }]}>{mmss(timeLeft)}</Text>
               <View style={styles.timerTrack}><View style={[styles.timerProgress, { width: `${Math.max(1, Math.min(100, inBreak ? 100 * (1 - timeLeft / (settings.breakMinutes * 60000)) : 100 * (1 - timeLeft / ((settings.workMinutes + settings.breakMinutes) * 60000))))}%` }]} /></View>
-              <Text style={styles.timerFoot}>{inBreak ? timeLeft > 0 ? 'Yürü, esne, su iç.' : 'Mola süren doldu. Tamamladıysan kaydet.' : isQuietNow ? `Bildirimler ${settings.quietEnd} itibarıyla devam edecek.` : `${settings.workMinutes} dk çalışma + ${settings.breakMinutes} dk hareket`}</Text>
+              <Text style={styles.timerFoot}>{inBreak ? breakFinished ? 'Süre doldu. Tamamladıysan molanı kaydet.' : `${Math.ceil(timeLeft / 60000)} dk kaldı · Yürü, esne, su iç.` : isQuietNow ? `Bildirimler ${settings.quietEnd} itibarıyla devam edecek.` : `Kalkma hatırlatmasına ${Math.ceil(timeLeft / 60000)} dk kaldı · ${settings.workMinutes} dk çalışma + ${settings.breakMinutes} dk mola`}</Text>
             </View>
 
             <View style={styles.actions}>
               {inBreak ? (
-                <PrimaryButton label="Molayı tamamladım  ✓" onPress={finishBreak} disabled={busy} />
+                <PrimaryButton label={breakFinished ? 'Molayı tamamla  ✓' : 'Molayı erken bitir  ✓'} onPress={finishBreak} disabled={busy} />
               ) : settings.enabled ? (
                 <>
                   <PrimaryButton label="Molayı şimdi başlat  ↗" onPress={startBreak} disabled={busy} />
@@ -345,30 +370,30 @@ const styles = StyleSheet.create({
   headerAction: { borderWidth: 1, borderColor: LINE, paddingVertical: 11, paddingHorizontal: 14, borderRadius: 30 },
   headerActionText: { fontSize: 10, fontWeight: '800', color: INK, letterSpacing: 0.5 },
   hero: { alignItems: 'center', paddingTop: 8, paddingBottom: 26 },
-  statusPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 9, backgroundColor: '#E7ECDA', borderRadius: 30 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 9, backgroundColor: '#E9E9E9', borderRadius: 30 },
   statusDot: { width: 7, height: 7, borderRadius: 10, marginRight: 9 },
-  statusText: { fontSize: 9, fontWeight: '800', letterSpacing: 1.1, color: '#344531' },
+  statusText: { fontSize: 9, fontWeight: '800', letterSpacing: 1.1, color: INK },
   mascot: { width: 215, height: 215, marginTop: 5, marginBottom: -5 },
   heroTitle: { fontSize: 33, fontWeight: '800', letterSpacing: -1.35, color: INK },
   heroSub: { fontSize: 13.5, color: MUTED, textAlign: 'center', marginTop: 7, lineHeight: 20, maxWidth: 295 },
-  timerCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 23, borderWidth: 1, borderColor: '#E6E9E0' },
+  timerCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 23, borderWidth: 1, borderColor: LINE },
   timerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   label: { fontSize: 9, fontWeight: '800', letterSpacing: 1.1, color: MUTED },
   timerTopRight: { fontSize: 10, fontWeight: '700', color: MUTED },
   timer: { fontWeight: '800', fontSize: 75, letterSpacing: -4.4, textAlign: 'center', color: INK, marginTop: 18, marginBottom: 19, fontVariant: ['tabular-nums'] },
-  timerTrack: { height: 6, backgroundColor: '#EBEFE6', borderRadius: 8, overflow: 'hidden' },
-  timerProgress: { height: 6, borderRadius: 8, backgroundColor: '#A2C04A' },
+  timerTrack: { height: 6, backgroundColor: '#E4E4E4', borderRadius: 8, overflow: 'hidden' },
+  timerProgress: { height: 6, borderRadius: 8, backgroundColor: '#111111' },
   timerFoot: { color: MUTED, textAlign: 'center', fontSize: 12, marginTop: 17 },
   actions: { gap: 10, marginTop: 14 },
-  button: { backgroundColor: INK, borderRadius: 17, minHeight: 56, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  buttonSecondary: { backgroundColor: '#E8ECDF' },
-  buttonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14.5 },
+  button: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: INK, borderRadius: 17, minHeight: 56, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  buttonSecondary: { backgroundColor: '#E4E4E4' },
+  buttonText: { color: INK, fontWeight: '700', fontSize: 14.5 },
   buttonSecondaryText: { color: INK },
-  smallButton: { alignSelf: 'flex-start', paddingHorizontal: 17, paddingVertical: 12, backgroundColor: INK, borderRadius: 12 },
-  smallButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  feedback: { textAlign: 'center', color: '#496D2C', fontWeight: '600', fontSize: 12, marginTop: 13 },
+  smallButton: { alignSelf: 'flex-start', paddingHorizontal: 17, paddingVertical: 12, backgroundColor: '#E4E4E4', borderWidth: 1, borderColor: LINE, borderRadius: 12 },
+  smallButtonText: { color: INK, fontSize: 12, fontWeight: '700' },
+  feedback: { textAlign: 'center', color: INK, fontWeight: '600', fontSize: 12, marginTop: 13 },
   statsRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  statCard: { flex: 1, backgroundColor: '#ECF0E4', padding: 19, borderRadius: 18 },
+  statCard: { flex: 1, backgroundColor: '#E9E9E9', padding: 19, borderRadius: 18 },
   statNumber: { fontSize: 32, color: INK, fontWeight: '800', marginTop: 12, lineHeight: 36 },
   statDesc: { fontSize: 11.5, color: MUTED, marginTop: 4 },
   footerNote: { paddingTop: 22, alignItems: 'center' },
@@ -389,10 +414,10 @@ const styles = StyleSheet.create({
   sectionSubtitle: { fontSize: 11.5, lineHeight: 17, color: MUTED, marginTop: 4 },
   chips: { flexDirection: 'row', gap: 9, flexWrap: 'wrap' },
   pill: { borderRadius: 13, borderWidth: 1, borderColor: LINE, paddingHorizontal: 17, paddingVertical: 12, backgroundColor: BG },
-  pillSelected: { backgroundColor: GREEN, borderColor: GREEN },
+  pillSelected: { backgroundColor: '#D6D6D6', borderColor: '#A3A3A3' },
   pillText: { fontSize: 13, color: MUTED, fontWeight: '700' },
   pillTextSelected: { color: INK },
   helperText: { fontSize: 11.5, lineHeight: 18, color: MUTED },
   bottom: { marginTop: 28, alignItems: 'center' },
-  bottomText: { fontSize: 9, letterSpacing: 1, color: '#9AA39A', fontWeight: '700' },
+  bottomText: { fontSize: 9, letterSpacing: 1, color: INK, fontWeight: '700' },
 });
