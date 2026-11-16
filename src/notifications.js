@@ -8,7 +8,9 @@ const SNOOZE_KEY = 'sponge:snooze-id:v1';
 const BREAK_END_KEY = 'sponge:break-end-notification-id:v1';
 const CHANNEL_ID = 'sponge-breaks-v2';
 const CATEGORY_ID = 'SPONGE_ACTIONS';
-const CHIME = 'sponge-chime.wav';
+// Expo Go cannot bundle custom native sounds. Use the standard tone for development;
+// release preview/production builds include the Sponge chime via app.json.
+const CHIME = __DEV__ ? 'default' : 'sponge-chime.wav';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
