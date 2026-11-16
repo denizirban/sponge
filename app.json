@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "KALK.",
+    "slug": "kalk",
+    "scheme": "kalk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F7EC"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kalk.reminder",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Kalk uygulaması hareket molalarını hatırlatmak için bildirim gönderir."
+      }
+    },
+    "android": {
+      "package": "com.kalk.reminder",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/mascot.png",
+        "backgroundColor": "#F5F7EC"
+      },
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "kalk-breaks"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {}
+    }
+  }
+}
