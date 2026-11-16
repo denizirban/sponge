@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "KALK.",
-    "slug": "kalk",
-    "scheme": "kalk",
+    "name": "Sponge",
+    "slug": "sponge",
+    "scheme": "sponge",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -14,13 +14,13 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.kalk.reminder",
+      "bundleIdentifier": "com.denizirban.sponge",
       "infoPlist": {
-        "NSUserNotificationsUsageDescription": "Kalk uygulaması hareket molalarını hatırlatmak için bildirim gönderir."
+        "NSUserNotificationsUsageDescription": "Sponge hareket molalarını hatırlatmak için bildirim gönderir."
       }
     },
     "android": {
-      "package": "com.kalk.reminder",
+      "package": "com.denizirban.sponge",
       "adaptiveIcon": {
         "foregroundImage": "./assets/mascot.png",
         "backgroundColor": "#F5F7EC"
@@ -33,7 +33,7 @@
       [
         "expo-notifications",
         {
-          "defaultChannel": "kalk-breaks"
+          "defaultChannel": "sponge-breaks"
         }
       ]
     ],

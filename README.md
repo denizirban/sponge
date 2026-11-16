@@ -1,60 +1,69 @@
-# KALK. — kişisel hareket molası hatırlatıcısı
+# Sponge — kişisel hareket molası hatırlatıcısı
 
-Expo SDK 58 ile hazırlanmış, **30 dakika odak + 5 dakika hareket** döngüsünü hatırlatan bir iOS/Android uygulaması. Kullanıcının verdiği görsel kişisel kullanım için ikon ve maskot olarak yer alır.
+Expo SDK 58 ile geliştirilmiş iPhone / Android hareket molası uygulaması. İkon ve maskot olarak kullanıcının sağladığı görsel kullanılıyor.
 
 ## Özellikler
 
-- Telefon kilitliyken veya uygulama kapalıyken *önceden planlanan yerel bildirimler* (internet/sunucu gerektirmez)
-- Varsayılan gece sessiz modu **22:00–09:00**; ayarlardan aç/kapat ve saatlerini değiştir
-- Bildirimleri tümden aç/kapat; devre dışı bırakınca cihazdaki planlı bildirimler iptal edilir
-- 30/45/60 dakika çalışma ve 5/10 dakika mola
-- Bildirimde **Molayı başlat** ve **5 dk ertele** eylemleri (uygulamayı açar)
-- Molayı manuel bitirme, günlük tamamlanan ve ertelenen sayaçları
-- Test bildirimi (8 saniye)
-- Hesap, sunucu, reklam ve web bağlantısı gerekmez
+- **30 dakika çalışma + 5 dakika hareket molası** (30/45/60 dk çalışma ve 5/10 dk mola seçenekleri)
+- Telefon kilitliyken veya uygulama kapalıyken cihazda önceden planlanan yerel bildirimler
+- **Gece sessiz modu** (varsayılan **22:00–09:00**, isteğe göre değiştirilebilir veya kapatılabilir)
+- Bildirimleri tamamen açma/kapatma, **5 dk erteleme**, bildirime dokunup mola başlatma
+- Günlük mola ve erteleme sayacı; 8 saniyelik test bildirimi
+- Hesap, reklam, internet bağlantısı veya sunucu gerektirmez
 
-## Çalıştırma
+## Mac ve iPhone'da hızlı test (Expo Go)
 
-Ön koşul: Node.js **22.13+**. iPhone üzerinde Expo SDK 58 için **özel bir iOS derlemesi (development build veya standalone build)** gerekir.
+Ön koşul: **Node.js 22.13+** ve iPhone'da **Expo Go (SDK 58)**. İlk test için Apple Developer hesabı veya EAS Build gerekmiyor.
 
 ```bash
+git clone https://github.com/denizirban/sponge.git
 cd sponge
 npm install
 npx expo install --fix
 npx expo start
 ```
 
-**Önemli:** iOS App Store’daki Expo Go sürümü SDK 54 ile sınırlıdır; bu SDK 58 projesini iPhone’da Expo Go ile açamazsın. Kilit ekranı ve kapalı uygulama bildirimlerini kendi yüklediğin native build üzerinde test et.
+Mac ve telefonun aynı Wi-Fi ağında olsun. Terminalde çıkan QR kodunu iPhone kamerası veya Expo Go ile aç. İlk ekranda **Bildirimler** seçeneğini etkinleştirip izin ver. **Ayarlar → Test bildirimi gönder** ile telefon kilitliyken 8 saniyelik hatırlatmayı dene.
 
-## iPhone'a kişisel kurulum
+Zaten projeyi klonladıysan:
 
-1. `npm install` ve `npx expo install --fix` çalıştır.
-2. Expo hesabınla `npx eas-cli login` yap.
-3. `npx eas-cli build:configure` çalıştır; ardından `npx eas-cli build --platform ios --profile preview` ile dahili bir iOS build iste. iOS cihaz kaydı/dağıtımı için Apple imzalama şartları geçerlidir (çoğunlukla Apple Developer hesabı gerekir). Alternatif olarak Mac'te Xcode ile geliştirme derlemesi kurulabilir.
-4. Telefonda bildirim izni ver, **Bildirimler** seçeneğini aç.
-5. Ayarlardan **Test bildirimi gönder**'e basıp telefonu kilitle. 8 saniye içinde test bildiriminin göründüğünü kontrol et.
+```bash
+cd sponge
+git pull
+npm install
+npx expo install --fix
+npx expo start
+```
 
-Android için `npx eas-cli build --platform android --profile preview` Android APK oluşturur.
+Bağlantı sorunu varsa Expo sunucusunu `npx expo start --tunnel` ile başlatmayı dene.
 
-## Teknik mantık
+**Not:** Expo Go, uygulamayı geliştirirken test etmek için uygundur. Sponge'un iPhone ana ekranında bağımsız bir uygulama olarak kalması ve uygulamanın **tamamen kapalı** durumdaki bildirimlerinin nihai doğrulaması için Apple tarafından imzalanmış iOS build gerekir.
 
-Günlük bildirimler cihazın sistemine `DAILY` trigger ile kaydedilir. Gece sessiz modu açıkken **22:00 ile 09:00 arasında hiçbir zaman tetiklenmezler**: uygulamanın arka planda çalışmasına ihtiyaç yoktur.
+## Kişisel iPhone uygulaması oluşturma (EAS)
 
-Örnek: 09:00'da çalışma başlar; 09:30, 10:05, 10:40, ... saatleri planlanır. Bu, her gün **sabit bir çalışma programıdır**. Uygulama gerçek oturma pozisyonunu algılamaz; kullanıcının mola yaptığını kendisi doğrulaması gerekir. Erteleme tek seferlik ayrı bir yerel bildirim oluşturur. Bildirimler cihazın Odak/Rahatsız Etme ayarlarına, izinlerine ve Android pil politikalarına tabidir; saniye/dakika hassasiyetinde kesin teslim garantisi yoktur.
+```bash
+npx eas-cli login
+npx eas-cli build:configure
+npx eas-cli device:create
+npx eas-cli build --platform ios --profile preview
+```
 
-**Sınır:** Bildirim zamanlaması günlük sabit saatlere dayanır. Her mola sonrası o andan itibaren dinamik olarak 30 dakika başlatma, uygulama tamamen kapalıyken işletim sisteminin arka plan sınırlamaları nedeniyle güvenilir biçimde yapılamaz. Bu MVP bu yüzden sabit gün içi program kullanır.
+iOS dahili dağıtım için Apple Developer Program üyeliği ve kayıtlı cihaz gerekir. Alternatif olarak Xcode ile geliştirici cihazına yerel derleme yapılabilir; imzalama koşulları farklıdır.
+
+## Teknik notlar
+
+Bildirimler, cihaz sisteminde **günlük sabit saatlere** planlanır. Varsayılan ayarlarda ilk uyarı 09:30, sonrakiler 10:05, 10:40 ... biçimindedir; gece saatlerine kayıt yapılmaz. Bu, her mola bittikten sonra *dinamik* 30 dakika saymaktan farklıdır. Telefonda gerçek oturma durumu algılanmaz.
+
+Telefonun bildirim izni, Sessiz / Odak modu ve pil/OS kısıtlamaları bildirimin ne zaman gösterileceğini etkileyebilir.
 
 ## Komutlar
 
 ```bash
-npm test               # Zamanlama mantığı birim testleri
-npm run start           # Expo geliştirici sunucusu
-npm run build:android   # EAS Android APK (eas-cli gerekli)
-npm run build:ios       # EAS iOS dahili dağıtım (eas-cli gerekli)
+npm test
+npx expo-doctor@latest
+npx expo start
 ```
 
-## Kaynak ve telif
+Telifli görsel kamuya açık depoda bulunduğunda herkes tarafından görülebilir. Kişisel kullanım için bile gerekli kullanım haklarına dikkat edilmeli.
 
-Maskot/ikon kullanıcı tarafından sağlanan görseldir. Bu GitHub deposu herkese açıksa görsel de herkese açık olur; özel kullanım için de telif durumuna dikkat edilmelidir. Kamuya açık ürün veya ticari dağıtım için gerekli kullanım hakları ayrıca değerlendirilmelidir.
-
-Expo Notifications: https://docs.expo.dev/versions/v58.0.0/sdk/notifications/
+[Expo Notifications SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/)

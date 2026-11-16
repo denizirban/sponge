@@ -226,7 +226,7 @@ export default function App() {
   }, [quietFrom, quietTo, updateSettings]);
 
   if (!ready) {
-    return <SafeAreaView style={[styles.root, { justifyContent: 'center', alignItems: 'center' }]}><ActivityIndicator color={INK} /><Text style={{ marginTop: 12, color: MUTED }}>KALK. hazırlanıyor</Text></SafeAreaView>;
+    return <SafeAreaView style={[styles.root, { justifyContent: 'center', alignItems: 'center' }]}><ActivityIndicator color={INK} /><Text style={{ marginTop: 12, color: MUTED }}>Sponge hazırlanıyor</Text></SafeAreaView>;
   }
 
   const slots = buildDailySlots(settings);
@@ -243,7 +243,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Pressable onPress={() => setScreen('home')}>
-            <Text style={styles.wordmark}>KALK<Text style={{ color: '#8AAA2A' }}>.</Text></Text>
+            <Text style={styles.wordmark}>SPONGE<Text style={{ color: '#8AAA2A' }}>.</Text></Text>
             <Text style={styles.headerSubtitle}>OTURMA, HAREKET ET.</Text>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={() => { setScreen(screen === 'home' ? 'settings' : 'home'); setFeedback(''); }} style={styles.headerAction}>
@@ -330,7 +330,7 @@ export default function App() {
             {feedback ? <Text style={styles.feedback}>{feedback}</Text> : null}
           </>
         )}
-        <View style={styles.bottom}><Text style={styles.bottomText}>KALK.  /  Sadece kendin için.</Text></View>
+        <View style={styles.bottom}><Text style={styles.bottomText}>Sponge  /  Sadece kendin için.</Text></View>
       </ScrollView>
     </SafeAreaView>
   );

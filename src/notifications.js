@@ -4,9 +4,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import logic from './logic.cjs';
 
 const { buildDailySlots, isActiveAt } = logic;
-const SNOOZE_KEY = 'kalk:snooze-id:v1';
-const CHANNEL_ID = 'kalk-breaks';
-const CATEGORY_ID = 'KALK_ACTIONS';
+const SNOOZE_KEY = 'sponge:snooze-id:v1';
+const CHANNEL_ID = 'sponge-breaks';
+const CATEGORY_ID = 'SPONGE_ACTIONS';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -47,7 +47,7 @@ export async function ensureNotificationPermission() {
     perm = await Notifications.requestPermissionsAsync();
   }
   if (!perm.granted && perm.ios?.status !== Notifications.IosAuthorizationStatus.PROVISIONAL) {
-    throw new Error('Bildirim izni verilmedi. Telefon ayarlarından KALK. bildirimlerini aç.');
+    throw new Error('Bildirim izni verilmedi. Telefon ayarlarından Sponge bildirimlerini aç.');
   }
 }
 
@@ -112,7 +112,7 @@ export async function testReminder() {
   return Notifications.scheduleNotificationAsync({
     content: {
       ...message({ workMinutes: 30, breakMinutes: 5 }),
-      title: 'KALK. test bildirimi',
+      title: 'Sponge test bildirimi',
       body: 'Bu bildirim telefonun yerel hatırlatma sistemiyle gönderildi.',
     },
     trigger: {
